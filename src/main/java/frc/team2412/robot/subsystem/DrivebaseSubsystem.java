@@ -9,6 +9,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.SerialPort;
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
@@ -19,6 +20,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.team2412.robot.Hardware;
 import frc.team2412.robot.Robot;
+import frc.team2412.robot.sim.SwerveDrivetrainModel;
 import frc.team2412.robot.util.GeoConvertor;
 import frc.team2412.robot.util.PFFController;
 import frc.team2412.robot.util.VectorSlewLimiter;
@@ -45,9 +47,6 @@ public class DrivebaseSubsystem extends SubsystemBase implements UpdateManager.U
 
     // TODO find values as these are just copied from 2910
     public static class DriveConstants {
-
-        public static final double TRACKWIDTH = 1.0;
-        public static final double WHEELBASE = 1.0;
 
         public static final DrivetrainFeedforwardConstants FEEDFORWARD_CONSTANTS = new DrivetrainFeedforwardConstants(
                 0.072746,
@@ -97,6 +96,7 @@ public class DrivebaseSubsystem extends SubsystemBase implements UpdateManager.U
 
     private final SwerveModule[] modules;
     private final double moduleMaxVelocityMetersPerSec;
+    private SwerveDrivetrainModel simModel;
 
     private final Object sensorLock = new Object();
     @GuardedBy("sensorLock")
@@ -150,6 +150,10 @@ public class DrivebaseSubsystem extends SubsystemBase implements UpdateManager.U
                 BACK_LEFT_CONFIG.create(supportAbsoluteEncoder),
                 BACK_RIGHT_CONFIG.create(supportAbsoluteEncoder) };
         moduleMaxVelocityMetersPerSec = MODULE_MAX_VELOCITY_METERS_PER_SEC;
+
+        if (RobotBase.isSimulation()) {
+            simModel = new SwerveDrivetrainModel(modules, gyroscope);
+        }
 
         odometryXEntry = tab.add("X", 0.0)
                 .withPosition(0, 0)

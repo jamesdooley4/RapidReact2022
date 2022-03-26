@@ -7,6 +7,8 @@ import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N2;
 
+import java.util.Objects;
+
 public class Force2d {
   Matrix<N2, N1> m;
 
@@ -216,5 +218,10 @@ public class Force2d {
     } else {
       return false;
     }
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(m);
   }
 }

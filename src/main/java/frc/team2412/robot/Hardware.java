@@ -2,6 +2,7 @@ package frc.team2412.robot;
 
 import com.swervedrivespecialties.swervelib.Mk4SwerveModuleHelper;
 
+import edu.wpi.first.math.util.Units;
 import frc.team2412.robot.sim.TalonFXSimProfile.TalonFXConstants;
 import frc.team2412.robot.util.Mk4Configuration;
 
@@ -20,7 +21,7 @@ public class Hardware {
     public static final String DRIVETRAIN_INTAKE_CAN_BUS_NAME = "DrivebaseIntake";
 
     // Changes swerve modules & disables subsystems missing from the swerve test bot
-    private static final Mk4SwerveModuleHelper.GearRatio GEAR_RATIO;
+    public static final Mk4SwerveModuleHelper.GearRatio GEAR_RATIO;
 
     static {
         GEAR_RATIO = Robot.getInstance().isCompetition()
@@ -66,6 +67,11 @@ public class Hardware {
 
     public static final int GYRO_PORT = 62;
 
+    // Units are meters
+    public static final double TRACKWIDTH = 0.7;
+    public static final double WHEELBASE = 0.7;
+
+
     // cameras
     public static final String LIMELIGHT = "limelight", FRONT_CAM = "front";
 
@@ -91,4 +97,9 @@ public class Hardware {
     // Simulation stuff
     // TODO Find more accurate values
     public static final double SIM_FULL_VELOCITY = 6000 * TalonFXConstants.RPM_TO_VELOCITY;
+
+    public static final double MASS_KG = Units.lbsToKilograms(140);
+    // Model moment of inertia as s square slab slightly larger than wheelbase with a central axis
+    public static final double MOI_KGM2 = 1.0/12.0 * MASS_KG * Math.pow((TRACKWIDTH * 1.1), 2) * 2.0;
+
 }
