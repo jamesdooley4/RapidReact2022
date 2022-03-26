@@ -134,6 +134,7 @@ public class DrivebaseSubsystem extends SubsystemBase implements UpdateManager.U
         boolean comp = Robot.getInstance().isCompetition();
 
         synchronized (sensorLock) {
+            //        AHRS navx = new AHRS(SerialPort.Port.kUSB, SerialDataType.kProcessedData, (byte) 200);
             gyroscope = comp ? new Pigeon(GYRO_PORT) : new NavX(SerialPort.Port.kMXP);
             if (gyroscope instanceof Pigeon)
                 gyroscope.setInverted(true);
