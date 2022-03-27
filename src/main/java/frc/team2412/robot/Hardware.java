@@ -2,6 +2,8 @@ package frc.team2412.robot;
 
 import com.swervedrivespecialties.swervelib.Mk4SwerveModuleHelper;
 
+import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.util.Units;
 import frc.team2412.robot.sim.TalonFXSimProfile.TalonFXConstants;
 import frc.team2412.robot.util.Mk4Configuration;
@@ -71,6 +73,12 @@ public class Hardware {
     public static final double TRACKWIDTH = 0.7;
     public static final double WHEELBASE = 0.7;
 
+    public static final SwerveDriveKinematics WPI_DRIVEKINEMATICS = new SwerveDriveKinematics(
+            new Translation2d(-TRACKWIDTH / 2.0, WHEELBASE / 2.0), // front left
+            new Translation2d(TRACKWIDTH / 2.0, WHEELBASE / 2.0), // front right
+            new Translation2d(-TRACKWIDTH / 2.0, -WHEELBASE / 2.0), // back left
+            new Translation2d(TRACKWIDTH / 2.0, -WHEELBASE / 2.0) // back right
+    );
 
     // cameras
     public static final String LIMELIGHT = "limelight", FRONT_CAM = "front";
@@ -100,6 +108,6 @@ public class Hardware {
 
     public static final double MASS_KG = Units.lbsToKilograms(140);
     // Model moment of inertia as s square slab slightly larger than wheelbase with a central axis
-    public static final double MOI_KGM2 = 1.0/12.0 * MASS_KG * Math.pow((TRACKWIDTH * 1.1), 2) * 2.0;
-
+    public static final double MOI_KGM2 = 1.0 / 12.0 * MASS_KG * Math.pow((TRACKWIDTH * 1.1), 2) * 2.0;
+    public static final double BATTERY_VOLTAGE = 13.2;
 }

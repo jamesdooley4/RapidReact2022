@@ -5,10 +5,9 @@ import static frc.team2412.robot.Hardware.*;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import com.swervedrivespecialties.swervelib.SwerveModule;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.SerialPort;
@@ -87,13 +86,6 @@ public class DrivebaseSubsystem extends SubsystemBase implements UpdateManager.U
             new Vector2(-TRACKWIDTH / 2.0, -WHEELBASE / 2.0) // back right
     );
 
-    private final SwerveDriveKinematics wpi_driveKinematics = new SwerveDriveKinematics(
-            new Translation2d(-TRACKWIDTH / 2.0, WHEELBASE / 2.0), // front left
-            new Translation2d(TRACKWIDTH / 2.0, WHEELBASE / 2.0), // front right
-            new Translation2d(-TRACKWIDTH / 2.0, -WHEELBASE / 2.0), // back left
-            new Translation2d(TRACKWIDTH / 2.0, -WHEELBASE / 2.0) // back right
-    );
-
     private final SwerveModule[] modules;
     private final double moduleMaxVelocityMetersPerSec;
     private SwerveDrivetrainModel simModel;
@@ -152,7 +144,7 @@ public class DrivebaseSubsystem extends SubsystemBase implements UpdateManager.U
         moduleMaxVelocityMetersPerSec = MODULE_MAX_VELOCITY_METERS_PER_SEC;
 
         if (RobotBase.isSimulation()) {
-            simModel = new SwerveDrivetrainModel(modules, gyroscope);
+            simModel = new SwerveDrivetrainModel(modules, gyroscope, field);
         }
 
         odometryXEntry = tab.add("X", 0.0)
@@ -426,9 +418,14 @@ public class DrivebaseSubsystem extends SubsystemBase implements UpdateManager.U
             odometryAngleEntry.setDouble(pose.rotation.toDegrees());
         }
         // System.out.println(pose);
-        Pose2d pose = getPoseAsPoseMeters();
-        field.setRobotPose(pose);
+        // Pose2d pose = getPoseAsPoseMeters();
+        // field.setRobotPose(pose);
 
+    }
+
+    @Override
+    public void simulationPeriodic() {
+        simModel.update(DriverStation.isDisabled(), BATTERY_VOLTAGE);
     }
 
     public HolonomicMotionProfiledTrajectoryFollower getFollower() {
