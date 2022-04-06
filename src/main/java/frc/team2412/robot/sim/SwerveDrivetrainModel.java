@@ -129,22 +129,26 @@ public class SwerveDrivetrainModel {
             modelReset(startPose);
         }
 
+        double currentTime = Timer.getFPGATimestamp();
+
         // Calculate and update input voltages to each motor.
         if (isDisabled) {
             for (int idx = 0; idx < QuadSwerveSim.NUM_MODULES; idx++) {
                 simModules.get(idx).setInputVoltages(0.0, 0.0);
             }
         } else {
+            StringBuilder sb = new StringBuilder(currentTime + ": ");
             for (int idx = 0; idx < QuadSwerveSim.NUM_MODULES; idx++) {
-                double steerAngle = realModules[idx].getSteerAngle();
+                double steerAngle = ((WPI_TalonFX)realModules[idx].getSteerMotor()).get// realModules[idx].getReferenceAngle(); //getSteerAngle();
                 double wheelVolts = ((WPI_TalonFX) realModules[idx].getDriveMotor()).getMotorOutputPercent()
                         * BATTERY_VOLTAGE;
+                sb.append("(" + wheelVolts + "," + steerAngle + ") ");
                 simModules.get(idx).setInputVoltageAndAngle(wheelVolts, steerAngle);
             }
+            System.out.println(sb);
         }
 
         // Update the main drivetrain plant model
-        double currentTime = Timer.getFPGATimestamp();
         swerveSim.update(currentTime - lastSimulationStepTime);
         lastSimulationStepTime = currentTime;
         endActualPose = swerveSim.getCurPose();

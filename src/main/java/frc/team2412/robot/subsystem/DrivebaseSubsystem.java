@@ -5,7 +5,9 @@ import static frc.team2412.robot.Hardware.*;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import com.swervedrivespecialties.swervelib.SwerveModule;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -38,6 +40,7 @@ import org.frcteam2910.common.util.*;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static frc.team2412.robot.Hardware.*;
 import static frc.team2412.robot.subsystem.DrivebaseSubsystem.DriveConstants.*;
@@ -90,6 +93,7 @@ public class DrivebaseSubsystem extends SubsystemBase implements UpdateManager.U
     private final double moduleMaxVelocityMetersPerSec;
     private SwerveDrivetrainModel simModel;
 
+    //private final ReentrantLock reentrantLock = new ReentrantLock();
     private final Object sensorLock = new Object();
     @GuardedBy("sensorLock")
     private final Gyroscope gyroscope;
@@ -349,10 +353,13 @@ public class DrivebaseSubsystem extends SubsystemBase implements UpdateManager.U
 
         Vector2[] moduleOutputs = swerveKinematics.toModuleVelocities(chassisVelocity);
         SwerveKinematics.normalizeModuleVelocities(moduleOutputs, 1);
+        StringBuilder sb = new StringBuilder("updateModules: ");
         for (int i = 0; i < moduleOutputs.length; i++) {
             var module = modules[i];
             module.set(moduleOutputs[i].length * 12.0, moduleOutputs[i].getAngle().toRadians());
+            sb.append("(" + module.getSteerAngle() + ", " + moduleOutputs[i].getAngle().toRadians() + ") ");
         }
+        System.out.println(sb.toString());
     }
 
     public void updateModules(ChassisSpeeds chassisSpeeds) {
@@ -418,8 +425,8 @@ public class DrivebaseSubsystem extends SubsystemBase implements UpdateManager.U
             odometryAngleEntry.setDouble(pose.rotation.toDegrees());
         }
         // System.out.println(pose);
-        // Pose2d pose = getPoseAsPoseMeters();
-        // field.setRobotPose(pose);
+        //Pose2d pose = getPoseAsPoseMeters();
+        //field.setRobotPose(pose);
 
     }
 
