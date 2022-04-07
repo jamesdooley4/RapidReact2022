@@ -1,6 +1,6 @@
 package frc.team2412.robot;
 
-import static frc.team2412.robot.Controls.ControlConstants.CONTROLLER_PORT;
+import static frc.team2412.robot.Controls.ControlConstants.*;
 
 import java.util.function.BooleanSupplier;
 
@@ -12,8 +12,10 @@ import org.frcteam2910.common.robot.input.XboxController;
 
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Button;
+import frc.team2412.robot.commands.climb.ClimbSetArmCommand;
 import frc.team2412.robot.commands.climb.ExtendArmCommand;
-import frc.team2412.robot.commands.climb.RetractArmFullyCommand;
+import frc.team2412.robot.commands.climb.PostClimbUpComamnd;
+import frc.team2412.robot.commands.climb.RetractArmCommand;
 import frc.team2412.robot.commands.index.IndexCommand;
 import frc.team2412.robot.commands.index.IndexShootCommand;
 import frc.team2412.robot.commands.intake.IntakeCommand;
@@ -30,13 +32,15 @@ public class Controls {
     }
 
     public XboxController driveController;
+    public XboxController codriverController;
 
     // climb
-    public final Button climbFixedArmUp;
-    public final Button climbFixedArmDown;
+    public final Button climbArmUp;
+    public final Button climbArmDown;
+    public final Button climbArmDownManual;
+    public final Button climbArmUpManual;
 
     public Controller shootPreset, climbPreset;
-    public XboxController codriverController;
 
     // index
 
@@ -50,6 +54,7 @@ public class Controls {
 
     // drive
     public final Button resetDriveGyroButton;
+    public final Button setPoseButton;
 
     public Subsystems subsystems;
 
@@ -58,10 +63,11 @@ public class Controls {
         subsystems = s;
 
         driveController = new XboxController(CONTROLLER_PORT);
+        codriverController = new XboxController(CODRIVER_CONTROLLER_PORT);
 
         resetDriveGyroButton = driveController.getRightJoystickButton();
+        setPoseButton = driveController.getStartButton(); // set pose button is practice bot only
         shootButton = driveController.getRightBumperButton();
-
         intakeInButton = new Button[] { driveController.getAButton(),
                 driveController.getLeftTriggerAxis().getButton(0.1),
                 driveController.getRightTriggerAxis().getButton(0.1),
@@ -69,8 +75,11 @@ public class Controls {
 
         intakeSpitButton = new Button[] { driveController.getBButton() };
         intakeRetractButton = driveController.getYButton();
-        climbFixedArmUp = driveController.getStartButton();
-        climbFixedArmDown = driveController.getBackButton();
+
+        climbArmUp = codriverController.getStartButton();
+        climbArmDown = codriverController.getBackButton();
+        climbArmDownManual = codriverController.getRightBumperButton();
+        climbArmUpManual = codriverController.getLeftBumperButton();
 
         boolean comp = Robot.getInstance().isCompetition();
 
@@ -96,8 +105,16 @@ public class Controls {
     }
 
     public void bindClimbControls() {
-        climbFixedArmDown.whenPressed(new RetractArmFullyCommand(subsystems.climbSubsystem));
-        climbFixedArmUp.whenPressed(new ExtendArmCommand(subsystems.climbSubsystem));
+        climbArmDown.whenPressed(new RetractArmCommand(subsystems.climbSubsystem));
+        climbArmUp.whenPressed(new ExtendArmCommand(subsystems.climbSubsystem));
+
+        climbArmDownManual.whileHeld(new ClimbSetArmCommand(subsystems.climbSubsystem, -0.4));
+        climbArmUpManual.whileHeld(new ClimbSetArmCommand(subsystems.climbSubsystem, 0.4));
+    }
+
+    public void bindPostClimbControls() {
+        climbArmUp.and(climbArmDown).and(climbArmDownManual).and(climbArmUpManual)
+                .whenActive(new PostClimbUpComamnd(subsystems.postClimbSubsystem));
     }
 
     public void bindDriveControls() {
@@ -105,18 +122,25 @@ public class Controls {
                 driveController.getLeftYAxis(), driveController.getLeftXAxis(),
                 driveController.getRightXAxis()));
         resetDriveGyroButton.whenPressed(() -> subsystems.drivebaseSubsystem.resetGyroAngle(Rotation2.ZERO));
+
+        if (!Robot.getInstance().isCompetition())
+            setPoseButton.whenPressed(() -> subsystems.drivebaseSubsystem.setPose());
     }
 
     public void bindIndexControls() {
-        subsystems.indexSubsystem
-                .setDefaultCommand(new IndexCommand(subsystems.indexSubsystem, subsystems.intakeSubsystem));
+        if (subsystems.intakeSubsystem != null) {
+            subsystems.indexSubsystem
+                    .setDefaultCommand(new IndexCommand(subsystems.indexSubsystem, subsystems.intakeSubsystem));
 
-        shootButton.whileHeld(new IndexShootCommand(subsystems.indexSubsystem));
+            subsystems.intakeSubsystem
+                    .setDefaultCommand(new IntakeCommand(subsystems.intakeSubsystem, subsystems.indexSubsystem));
+
+        }
+
+        shootButton.whileHeld(new IndexShootCommand(subsystems.indexSubsystem, subsystems.targetLocalizer));
     }
 
     public void bindIntakeControls() {
-        subsystems.intakeSubsystem
-                .setDefaultCommand(new IntakeCommand(subsystems.intakeSubsystem, subsystems.indexSubsystem));
 
         for (Button b : intakeSpitButton)
             b.whileHeld(new SpitBallCommand(subsystems.indexSubsystem, subsystems.intakeSubsystem));
@@ -132,12 +156,12 @@ public class Controls {
                             .alongWith(new InstantCommand(() -> subsystems.shooterSubsystem.setTurretAngle(-90))));
 
             driveController.getDPadButton(Direction.LEFT).whenPressed(
-                    new ShooterHoodRPMCommand(subsystems.shooterSubsystem, 2700, 0).withInterrupt(b)
+                    new ShooterHoodRPMCommand(subsystems.shooterSubsystem, 3092, 0).withInterrupt(b)
                             .alongWith(new InstantCommand(() -> subsystems.shooterSubsystem.setTurretAngle(-90))));
 
             driveController.getDPadButton(Direction.RIGHT).whenPressed(
                     new ShooterHoodRPMCommand(subsystems.shooterSubsystem, 0, 0).withInterrupt(b)
-                            .alongWith(new InstantCommand(() -> subsystems.shooterSubsystem.setTurretAngle(90))));
+                            .alongWith(new InstantCommand(() -> subsystems.shooterSubsystem.setTurretAngle(0))));
 
             if (subsystems.drivebaseSubsystem != null) {
                 subsystems.shooterSubsystem.setDefaultCommand(

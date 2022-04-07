@@ -9,27 +9,27 @@ import static frc.team2412.robot.Hardware.*;
 
 import static java.lang.Thread.sleep;
 
+import frc.team2412.robot.commands.autonomous.JackFiveBallAutoCommand;
 import org.frcteam2910.common.robot.UpdateManager;
 
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.hal.simulation.DriverStationDataJNI;
+import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.PneumaticHub;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
+import edu.wpi.first.wpilibj.livewindow.LiveWindow;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import frc.team2412.robot.commands.shooter.ShooterResetEncodersCommand;
 import frc.team2412.robot.sim.PhysicsSim;
-import frc.team2412.robot.subsystem.DrivebaseSubsystem;
 import frc.team2412.robot.subsystem.TestingSubsystem;
 import frc.team2412.robot.util.MACAddress;
 import frc.team2412.robot.util.autonomous.AutonomousChooser;
-import frc.team2412.robot.util.autonomous.AutonomousTrajectories;
 import io.github.oblarg.oblog.Logger;
 
 public class Robot extends TimedRobot {
@@ -71,12 +71,6 @@ public class Robot extends TimedRobot {
         System.out.println("Robot type: " + (type.equals(RobotType.AUTOMATED_TEST) ? "AutomatedTest" : "Competition"));
         instance = this;
         PDP = new PowerDistribution(Hardware.PDP_ID, ModuleType.kRev);
-
-        if (COMPRESSOR_ENABLED) {
-            pneumaticHub = new PneumaticHub(PNEUMATIC_HUB);
-            pneumaticHub.enableCompressorAnalog(MIN_PRESSURE, MAX_PRESSURE);
-        }
-
         robotType = type;
     }
 
@@ -130,6 +124,7 @@ public class Robot extends TimedRobot {
 
     @Override
     public void robotInit() {
+        LiveWindow.setEnabled(false);
         subsystems = new Subsystems();
         controls = new Controls(subsystems);
         if (DRIVE_ENABLED) {
@@ -144,11 +139,25 @@ public class Robot extends TimedRobot {
             CameraServer.startAutomaticCapture();
         }
 
+        if (COMPRESSOR_ENABLED) {
+            pneumaticHub = new PneumaticHub(PNEUMATIC_HUB);
+            pneumaticHub.enableCompressorAnalog(MIN_PRESSURE, MAX_PRESSURE);
+        } else {
+            pneumaticHub = new PneumaticHub(PNEUMATIC_HUB);
+            if (pneumaticHub != null) {
+                pneumaticHub.disableCompressor();
+            }
+        }
+
+        Shuffleboard.startRecording();
+
+        DataLogManager.start();
+        DriverStation.startDataLog(DataLogManager.getLog(), true);
+
         // Create and push Field2d to SmartDashboard.
         SmartDashboard.putData(field);
 
-        autonomousChooser = new AutonomousChooser(subsystems,
-                new AutonomousTrajectories(DrivebaseSubsystem.DriveConstants.TRAJECTORY_CONSTRAINTS));
+        autonomousChooser = new AutonomousChooser(subsystems);
         Logger.configureLoggingAndConfig(subsystems, false);
 
         CommandScheduler.getInstance()
@@ -192,11 +201,12 @@ public class Robot extends TimedRobot {
             });
             controlAuto.start();
         }
+        JackFiveBallAutoCommand.FiveBallConstants.init();
     }
 
     @Override
     public void testInit() {
-        autonomousChooser.getCommand().schedule();
+        autonomousChooser.scheduleCommand();
     }
 
     @Override
@@ -212,14 +222,11 @@ public class Robot extends TimedRobot {
             subsystems.drivebaseSubsystem.resetPose(autonomousChooser.getStartPose());
         }
 
-        if (subsystems.shooterSubsystem != null) {
-            new ShooterResetEncodersCommand(subsystems.shooterSubsystem).schedule();
-        }
+        // if (subsystems.shooterSubsystem != null) {
+        // new ShooterResetEncodersCommand(subsystems.shooterSubsystem).schedule();
+        // }
 
-        Command autoCommand = autonomousChooser.getCommand();
-        if (autoCommand != null) {
-            autoCommand.schedule();
-        }
+        autonomousChooser.scheduleCommand();
     }
 
     @Override
@@ -232,6 +239,11 @@ public class Robot extends TimedRobot {
 
     @Override
     public void autonomousExit() {
+        CommandScheduler.getInstance().cancelAll();
+    }
+
+    @Override
+    public void teleopExit() {
         CommandScheduler.getInstance().cancelAll();
     }
 
